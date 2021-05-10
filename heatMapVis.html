@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html land = "en">
+    <meta charset ="UTF-8">
+    <meta nema="viewport" content = "width = devide-width,initial-scale = 1.0">
+    <link rel = "stylesheet" href= "./style.css"> 
+    <script src = "https://d3js.org/d3.v5.min.js"></script>
+    <script src= "https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+    <script type="text/javascript" src="enron-v1-dataset.json"></script>
+    <title> Heat map> </title>
+
+    <h1 id = 'title'>Sentiment per day</h1>
+    <h4 id = 'description'>Sentiment of email in 1999-2002. Neutral is 0. </h4>
+    <div id = 'tooltip'>
+    </div>
+    <svg id = 'canvas'>    
+    </svg>
+    <script>
+
+let req = new XMLHttpRequest();
+let baseSen = 0
+let values  = []
+let xScale
+let yScale
+let width = 1300
+let height =1000
+let padding = 100
+let minYear 
+let maxYear
+let sentiment
+
+
+//********* NE DIRAJ ********** 
+let canvas  = d3.select('#canvas')
+canvas.attr('width', width)
+canvas.attr('height', height)
+let tooltip  = d3.select('#tooltip')
+let drawCanvas = () => {
+    svg.attr('width', width)
+    svg.attr('height', height)
+}
+
+// mm/dd/yyyy
+
+//ISPRAVITI
+let generateScales = () => {
+
+   minYear = d3.min(values, (item) => {
+       return parseInt(item['date'].slice(0,4));
+   })
+   maxYear = d3.max(values, (item) => {
+       return parseInt(item['date'].slice(0,4))+1;
+   })
+
+   maxMonth = d3.max(values, (item) => {
+        return parseInt(item['date'].slice(5,7))
+   })
+
+   minMonth = d3.min(values, (item) => {
+        return parseInt(item['date'].slice(5,7))
+   })
+
+
+   //********* NE DIRAJ ********** 
+    xScale = d3.scaleLinear()
+        .domain([minYear, maxYear]) //+1 to the maxyear
+        //.domain([1998, 2003])
+        .range([padding, width-padding]) //no touching
+        
+    yScale = d3.scaleTime()
+        .domain([new Date(0,0,1,0,0,0,0), new Date(0,11,31,0,0,0,0)])
+        .range([padding, height - padding ])
+
+
+    }
+
+    // color function, first one gradient, second one u choose
+    var myColor = d3.scaleSequential().domain([-0.02,0.02])
+                    .interpolator(d3.interpolateViridis) 
+                   /*  d3.scaleLinear().domain([-0.04,0.04])
+                    .range(["blue", "yellow"]) */
+
+    let drawCells = () => {
+        canvas.selectAll('rect')
+        .data(values)
+        .enter() //about to specify what to do 
+        .append('rect') //creating new element
+        .attr('class', 'cell')
+        
+        .attr('fill', (item) => {   
+           sentiment = item['sentiment']
+            return myColor(sentiment)
+            
+        })
+        
+        //dodaj mjesec, godinu i sentiment 
+        .attr('data-year', (item) => {
+            return parseInt(item['date'].slice(0,4))
+        })
+        .attr('data-month', (item) => {
+            return parseInt(item['date'].slice(5,7)) -1
+        }) 
+        .attr('data-day',(item) => {
+            return parseInt(item['date'].slice(8,))
+        })
+        .attr('data-sen', (item) => {
+            return parseInt(item['sentiment'])
+        })
+        .attr('height', (height-2*padding)/365)
+        .attr('y', (item) => {
+            return yScale(new Date(0,parseInt(item['date'].slice(5,7))-1,parseInt(item['date'].slice(8,)),0,0,0,0))
+        })
+       // console.log(maxYear-minYear)
+        .attr('width', (item) => {
+            let numberOfYears = maxYear - minYear 
+            return ((width - (2*padding))/ (numberOfYears))
+        })
+        .attr('x', (item) => {
+            return xScale(parseInt(item['date'].slice(0,4)))
+        })
+
+        .on('mouseover', (item) => {
+            tooltip.transition()
+                .style('visibility', 'visible')
+            
+            let monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"]
+        
+            /* item['year'] + ' ' 
+            + monthNames[item['month']-1]+ "  " +item['day'] */
+
+            tooltip.text(item['date'] + ' : ' + item['sentiment'])
+            tooltip.attr('data-year', parseInt(item['date'].slice(0,4)))
+        })
+        .on('mouseout', (item) => {
+            tooltip.transition()
+                .style('visibility', 'hidden')
+        })
+    }
+    
+    
+    // ********** NE DIRATI ************
+    //crtanje na poziciji, scalling pogledaj pod generateScales()
+    let drawAxes = () => {
+        let xAxis = d3.axisBottom(xScale)
+                        .ticks(maxYear+1-minYear)
+                        .tickFormat(d3.format('d')) //decimal or integer
+        let yAxis = d3.axisLeft(yScale)
+                        //.ticks(maxMonth)
+                        .tickFormat(d3.timeFormat('%B')) 
+                    //show the format of the month as a string 
+        
+        canvas.append('g')
+            .call(xAxis)
+            .attr('id','x-axis')
+            .attr('transform', 'translate(0, ' + (height-padding) + ')')
+
+        canvas.append('g')
+            .call(yAxis)
+            .attr('id', 'y-axis')
+            .attr('transform', 'translate('+padding+ ', 0)')
+    }
+    let object = JSON.parse(req.responseText)
+    baseTemp = 0
+    values  = object["object"]   
+    console.log(baseSen)
+    console.log(values)
+    generateScales()
+    drawCells()
+    drawAxes()
+    
+    </script> 
+
+<!-- NE DIRAJ, edited -->
+<!-- NE DIRAJ, neki source code-->
+<!--<script src="https://gist.github.com/sekaApoteka/7028d91775b475b43b2b8fa367f9d0f9.js"></script> -->
+</html>
